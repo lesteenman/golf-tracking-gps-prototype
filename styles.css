@@ -1,0 +1,132 @@
+/* Dark chrome over bright aerial photography: flat colour blocks need either an
+   outline or a scrim to stay readable outdoors, so every panel is opaque and
+   every overlay label carries a shadow. Touch targets are 44px minimum. */
+
+:root{
+  --ink:#0b0f0c; --panel:#121814; --panel-2:#0d130f; --line:#2c3a31;
+  --turf:#7dd87d; --sand:#e8c87a; --water:#5aa9e6; --tee:#5ee0c8;
+  --rough:#5c7a5f; --hot:#ff5c3a; --dim:#93a89c; --paper:#eef4ef;
+  --num:600 clamp(20px,6vw,26px)/1 ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--ink);color:var(--paper);
+  font:15px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-text-size-adjust:100%}
+#map{position:absolute;inset:0}
+.leaflet-container{background:#0b0f0c;font:inherit}
+.leaflet-control-attribution{display:none}
+
+/* ---------- top bar ---------- */
+#bar{position:absolute;top:0;left:0;right:0;z-index:900;display:flex;gap:6px;flex-wrap:wrap;
+  padding:calc(8px + env(safe-area-inset-top)) 8px 8px;
+  background:linear-gradient(to bottom,rgba(11,15,12,.92),rgba(11,15,12,0))}
+button{min-height:44px;background:var(--panel);color:var(--paper);border:1px solid var(--line);
+  border-radius:9px;padding:8px 12px;font:600 14px/1 inherit;cursor:pointer;
+  box-shadow:0 1px 6px rgba(0,0,0,.45)}
+button:hover{background:#1a231d}
+button:active{transform:translateY(1px)}
+button.primary{background:var(--turf);color:#08120a;border-color:#9fe89f}
+button.on{border-color:var(--turf);color:var(--turf)}
+button[disabled]{opacity:.45;cursor:not-allowed}
+button:focus-visible{outline:3px solid var(--turf);outline-offset:2px}
+
+/* ---------- status note ---------- */
+#note{position:absolute;top:calc(60px + env(safe-area-inset-top));left:8px;right:8px;z-index:880;
+  background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--turf);
+  border-radius:9px;padding:9px 11px;font-size:13px;color:var(--dim);max-width:520px;
+  box-shadow:0 2px 10px rgba(0,0,0,.5)}
+#note b{color:var(--paper)}
+#note.warn{border-left-color:var(--sand)}
+#note.err{border-left-color:var(--hot)}
+#note.busy::after{content:"";display:inline-block;width:9px;height:9px;margin-left:8px;
+  border:2px solid var(--dim);border-top-color:transparent;border-radius:50%;
+  animation:spin .8s linear infinite;vertical-align:-1px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---------- hover probe ---------- */
+#probe{position:absolute;z-index:890;transform:translate(-50%,-140%);pointer-events:none;
+  background:rgba(11,15,12,.92);border:1px solid var(--line);border-radius:8px;padding:4px 8px;
+  white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.6)}
+#probe b{font:600 16px/1 ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums;color:var(--turf)}
+#probe span{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-left:4px}
+
+/* ---------- bottom readout ---------- */
+#hud{position:absolute;left:0;right:0;bottom:0;z-index:900;padding:10px 8px calc(10px + env(safe-area-inset-bottom));
+  background:linear-gradient(to top,var(--panel) 74%,rgba(18,24,20,0));border-top:1px solid var(--line)}
+#readout{display:flex;gap:6px}
+.cell{flex:1;min-width:0;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;
+  padding:6px 8px;text-align:center}
+.cell.wide{flex:2.2;text-align:left}
+.cell b{display:block;font:var(--num);font-variant-numeric:tabular-nums;color:var(--turf);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cell.wide b{font-size:15px;color:var(--paper)}
+.cell span{display:block;margin-top:3px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tools{display:flex;align-items:center;gap:6px;margin-top:8px}
+#tools button{min-height:40px;font-size:13px}
+#scan-status{font:12px/1.3 ui-monospace,Menlo,monospace;color:var(--dim);flex:1;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---------- legend ---------- */
+#legend{position:absolute;right:8px;bottom:150px;z-index:910;width:min(300px,calc(100vw - 16px));
+  background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 14px;
+  box-shadow:0 8px 28px rgba(0,0,0,.6)}
+#legend h2{margin:0 0 8px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.keys{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;font-size:13px}
+.keys li{display:flex;align-items:center;gap:7px}
+.keys i{width:16px;height:12px;border-radius:3px;flex:none;border:1px solid rgba(255,255,255,.55)}
+.k-green{background:#7dd87d}.k-fairway{background:#4e9b57}.k-tee{background:#5ee0c8}
+.k-bunker{background:#e8c87a}.k-water{background:#5aa9e6}.k-rough{background:#5c7a5f}
+.k-hole{background:#ff5c3a;height:3px;border-radius:2px}
+.k-derived{background:repeating-linear-gradient(90deg,#ff9d3a 0 5px,transparent 5px 9px);height:3px;border:none}
+.k-pin{background:#fff;border-radius:50%;width:12px;height:12px}
+.fine{margin:10px 0 0;font-size:11px;line-height:1.45;color:var(--dim)}
+.fine a{color:var(--turf)}
+#legend .keys li{white-space:nowrap}
+
+/* ---------- coverage panel ---------- */
+#coverage{position:absolute;z-index:950;top:0;right:0;bottom:0;width:min(430px,100vw);
+  background:var(--panel);border-left:1px solid var(--line);display:flex;flex-direction:column;
+  padding:calc(10px + env(safe-area-inset-top)) 12px calc(10px + env(safe-area-inset-bottom))}
+.cov-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.cov-head h2{margin:0;font-size:15px}
+#btn-cov-close{min-height:40px;padding:6px 12px}
+.cov-summary{margin:8px 0;font-size:13px;color:var(--dim)}
+.cov-summary b{color:var(--paper);font-variant-numeric:tabular-nums}
+#cov-search{width:100%;min-height:44px;background:var(--panel-2);color:var(--paper);
+  border:1px solid var(--line);border-radius:9px;padding:8px 11px;font:15px/1.2 inherit}
+#cov-search:focus-visible{outline:3px solid var(--turf);outline-offset:1px}
+.cov-sort{display:flex;gap:6px;margin:8px 0;flex-wrap:wrap}
+.cov-sort button{min-height:36px;padding:6px 10px;font-size:12px}
+#cov-list{list-style:none;margin:0;padding:0;overflow:auto;flex:1;-webkit-overflow-scrolling:touch}
+#cov-list li{border-bottom:1px solid var(--line)}
+#cov-list button{width:100%;min-height:52px;display:flex;align-items:center;gap:9px;text-align:left;
+  background:none;border:none;border-radius:0;box-shadow:none;padding:9px 4px;font-weight:500}
+#cov-list button:hover{background:#1a231d}
+.dot{width:10px;height:10px;border-radius:50%;flex:none}
+.dot.full{background:var(--turf)}.dot.partial{background:var(--sand)}.dot.none{background:#6b7a70}
+.cname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cnums{font:12px/1.2 ui-monospace,Menlo,monospace;color:var(--dim);font-variant-numeric:tabular-nums;flex:none}
+.cnums em{font-style:normal;color:var(--paper)}
+.flag{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--sand);flex:none}
+
+/* ---------- map overlay labels ---------- */
+.hole-label{background:none;border:none;box-shadow:none;color:#fff;
+  font:700 12px/1 ui-monospace,Menlo,monospace;text-shadow:0 0 4px #000,0 0 8px #000;white-space:nowrap}
+.contour-label{background:none;border:none;box-shadow:none;color:#ffe9a8;
+  font:600 10px/1 ui-monospace,Menlo,monospace;text-shadow:0 0 4px #000,0 0 7px #000}
+.leaflet-popup-content-wrapper{background:var(--panel);color:var(--paper);border:1px solid var(--line);border-radius:9px}
+.leaflet-popup-tip{background:var(--panel);border:1px solid var(--line)}
+.leaflet-popup-content{margin:9px 11px;font-size:13px}
+.leaflet-popup-content h3{margin:0 0 4px;font-size:13px;color:var(--turf)}
+.leaflet-popup-content dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:12px}
+.leaflet-popup-content dt{color:var(--dim)}
+.leaflet-popup-content dd{margin:0;font-variant-numeric:tabular-nums}
+.leaflet-bar a{background:var(--panel);color:var(--paper);border-bottom-color:var(--line)}
+.leaflet-bar a:hover{background:#1a231d}
+
+@media (max-width:520px){
+  #legend{bottom:auto;top:calc(60px + env(safe-area-inset-top));right:8px;left:8px;width:auto}
+  .cell.wide{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

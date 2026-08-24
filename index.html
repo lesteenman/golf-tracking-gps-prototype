@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Course data inspection map — NL</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="description" content="Aerial imagery, OpenStreetMap course polygons and AHN terrain height on one map, for judging whether Dutch open data is good enough to build a golf app on.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div id="map" role="application" aria-label="Aerial map with course data overlay"></div>
+
+<header id="bar">
+  <button id="btn-load" class="primary" type="button">Load course here</button>
+  <button id="btn-imagery" type="button" aria-pressed="true"><span class="sw">Winter</span> 8&nbsp;cm</button>
+  <button id="btn-model" type="button" title="Terrain (bare earth) or surface (includes trees and buildings)">DTM</button>
+  <button id="btn-holes" class="on" type="button" aria-pressed="true">Holes</button>
+  <button id="btn-coverage" type="button">Coverage</button>
+  <button id="btn-locate" type="button" title="Centre on my position">◎</button>
+</header>
+
+<div id="note" role="status" aria-live="polite">
+  Pan to a course and press <b>Load course here</b>. Hover (or tap) anywhere for terrain height.
+</div>
+
+<div id="probe" hidden aria-hidden="true"><b>–</b><span>m NAP</span></div>
+
+<footer id="hud">
+  <div id="readout">
+    <div class="cell"><b id="r-height">–</b><span id="r-height-label">height NAP</span></div>
+    <div class="cell"><b id="r-greens">–</b><span>greens</span></div>
+    <div class="cell"><b id="r-holes">–</b><span>hole lines</span></div>
+    <div class="cell wide"><b id="r-sel">no green selected</b><span id="r-sel-sub">tap a green to select it</span></div>
+  </div>
+  <div id="tools">
+    <button id="btn-scan" type="button" disabled>Scan green relief</button>
+    <button id="btn-legend" type="button" aria-expanded="false">Legend</button>
+    <span id="scan-status"></span>
+  </div>
+</footer>
+
+<div id="legend" hidden>
+  <h2>What you are looking at</h2>
+  <ul class="keys">
+    <li><i class="k-green"></i>green</li>
+    <li><i class="k-fairway"></i>fairway</li>
+    <li><i class="k-tee"></i>tee</li>
+    <li><i class="k-bunker"></i>bunker</li>
+    <li><i class="k-water"></i>water hazard</li>
+    <li><i class="k-rough"></i>rough</li>
+    <li><i class="k-hole"></i>hole route (OSM <code>golf=hole</code>)</li>
+    <li><i class="k-derived"></i>derived route (tee&nbsp;→&nbsp;green)</li>
+    <li><i class="k-pin"></i>pin</li>
+  </ul>
+  <p class="fine">
+    Imagery <a href="https://www.pdok.nl" target="_blank" rel="noopener">PDOK</a> CC&nbsp;BY&nbsp;4.0 ·
+    height <a href="https://www.ahn.nl" target="_blank" rel="noopener">AHN</a> CC0 ·
+    course data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, ODbL.
+    Heights are metres relative to NAP and are legitimately negative in much of the country.
+  </p>
+</div>
+
+<section id="coverage" hidden aria-label="Coverage of Dutch golf courses in OpenStreetMap">
+  <div class="cov-head">
+    <h2>OpenStreetMap coverage — Netherlands</h2>
+    <button id="btn-cov-close" type="button" aria-label="Close">✕</button>
+  </div>
+  <p id="cov-summary" class="cov-summary">Loading…</p>
+  <input id="cov-search" type="search" placeholder="Search course name…" autocomplete="off" spellcheck="false">
+  <div class="cov-sort">
+    <button data-key="green" class="on" type="button">Greens</button>
+    <button data-key="hole" type="button">Hole lines</button>
+    <button data-key="fairway" type="button">Fairways</button>
+    <button data-key="name" type="button">Name</button>
+  </div>
+  <ol id="cov-list"></ol>
+  <p class="fine">
+    Counts were assigned to the nearest course centroid within 2&nbsp;km, so multi-course facilities may be
+    merged into one entry, and some zero-green entries are driving ranges or pitch-and-putt rather than
+    genuinely unmapped courses. Verify a handful by eye before treating 60% as gospel.
+    Survey run <span id="cov-generated">—</span>; regenerate with <code>scripts/build-coverage.mjs</code>.
+  </p>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="lib.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
