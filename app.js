@@ -594,8 +594,8 @@
       $('cov-summary').innerHTML =
         '<b>' + s.total + '</b> courses tagged · <b>' + s.full + '</b> (' +
         Math.round(s.full / s.total * 100) + '%) with 9+ greens · <b>' + s.partial + '</b> partial · <b>' +
-        s.none + '</b> with none. Of the well-mapped: <b>' + s.withHoles + '</b> have hole lines, <b>' +
-        s.withPins + '</b> pins, <b>' + s.withFairways + '</b> fairways.' +
+        s.none + '</b> with none. Of the well-mapped, <b>' + s.withHoles + '</b> have 9+ hole lines, <b>' +
+        s.withPins + '</b> 9+ pins, <b>' + s.withFairways + '</b> 9+ fairways.' +
         (s.offshore ? ' <b>' + s.offshore + '</b> lie outside the PDOK/AHN footprint (Caribbean NL).' : '');
       $('cov-generated').textContent = d.generated || 'unknown';
       renderCoverage();

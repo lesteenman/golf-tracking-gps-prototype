@@ -203,6 +203,24 @@ test('coverage classification follows the 9-green threshold', () => {
   assert.equal(G.classifyCoverage(COURSES[2]), 'none');
 });
 
+test('a well-mapped course with only a token hole line does not count as routed', () => {
+  const s = G.summarizeCoverage([{ name: 'Token', green: 18, hole: 3, pin: 0, fairway: 0, lat: 52, lon: 6 }]);
+  assert.equal(s.full, 1);
+  assert.equal(s.withHoles, 0, '3 hole lines on an 18-green course is not coverage');
+});
+
+test('the committed survey reconciles with the numbers quoted in the handover', () => {
+  const survey = require('../data/nl-course-coverage.json');
+  const s = G.summarizeCoverage(survey.courses);
+  assert.equal(s.total, 296);
+  assert.equal(s.full, 178);
+  assert.equal(s.partial, 30);
+  assert.equal(s.none, 88);
+  assert.equal(s.withHoles, 156);
+  assert.equal(s.withPins, 149);
+  assert.equal(s.withFairways, 118);
+});
+
 test('coverage summary counts courses, not features', () => {
   const s = G.summarizeCoverage(COURSES);
   assert.equal(s.total, 3);

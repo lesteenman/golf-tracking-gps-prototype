@@ -374,10 +374,12 @@ var GOLF = (function () {
       s.total++;
       var cls = classifyCoverage(c);
       s[cls]++;
+      // Same 9+ threshold as the green count, which is what makes these
+      // reconcile with the 156 / 149 / 118 in the handover survey.
       if (cls === 'full') {
-        if ((c.hole || 0) > 0) s.withHoles++;
-        if ((c.pin || 0) > 0) s.withPins++;
-        if ((c.fairway || 0) > 0) s.withFairways++;
+        if ((c.hole || 0) >= 9) s.withHoles++;
+        if ((c.pin || 0) >= 9) s.withPins++;
+        if ((c.fairway || 0) >= 9) s.withFairways++;
       }
       if (!hasDutchImagery(c.lat, c.lon)) s.offshore++;
     });

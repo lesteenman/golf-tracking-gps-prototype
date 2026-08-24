@@ -93,6 +93,8 @@ https or localhost.
 - **30 (10%)** are partially mapped, 1–8 greens
 - **88 (30%)** have no greens at all
 - of the 178 well-mapped: 156 have hole routing lines, 149 pin nodes, 118 fairways
+  (counted on the same 9-or-more threshold as the greens; a unit test pins these
+  numbers against the committed JSON so a refreshed survey cannot silently drift)
 
 Carry the caveats rather than hiding them: counts were assigned to the nearest
 course centroid within 2 km, so multi-course facilities may be merged into one
@@ -115,7 +117,7 @@ node scripts/build-coverage.mjs --bbox 52.0,5.9,52.3,6.2   # quick check
 ## Tests
 
 ```sh
-npm test            # 30 unit tests, no network, no browser
+npm test            # 32 unit tests, no network, no browser
 npm run test:browser # 11 tests driving Chromium with the three services stubbed
 npm run smoke -- https://lesteenman.github.io/golf-tracking-gps-prototype/
 ```
