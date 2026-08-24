@@ -1,0 +1,38 @@
+# End-to-end check of the deployed site: fetch every asset, then drive it in a
+# real browser against the live PDOK, AHN and Overpass services.
+# Dispatch-only — it needs Pages to be enabled and depends on third parties.
+name: verify deployed site
+on:
+  # Fires automatically the first time GitHub Pages publishes the site, so
+  # enabling Pages is immediately followed by an end-to-end verification.
+  page_build:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Site URL to verify
+        required: false
+        default: https://lesteenman.github.io/golf-tracking-gps-prototype/
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    env:
+      SITE_URL: ${{ inputs.url || 'https://lesteenman.github.io/golf-tracking-gps-prototype/' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: smoke — every asset serves
+        run: node tests/smoke.mjs "$SITE_URL"
+      - name: end to end — live services in a real browser
+        run: node --test tests/live.test.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-screenshots
+          path: test-results/
+          if-no-files-found: ignore

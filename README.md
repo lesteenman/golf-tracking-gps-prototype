@@ -132,21 +132,39 @@ height on hover and on tap, hole labels, contours, coverage filtering, and the
 all-endpoints-down error — is checked without hammering the live services.
 Leaflet is vendored under `tests/vendor/` to keep them hermetic.
 
-## What was verified, and what was not
+## What was verified
 
-Built in a sandbox whose egress proxy blocks `service.pdok.nl`, every Overpass
-mirror and `github.io`, so:
+The build sandbox cannot reach any of the three services, so the live checks run
+on a GitHub runner instead — `node scripts/check-live-services.mjs`, using the
+page's own URL builders. Last run, against the real services:
 
-- **Verified**: all application logic, in a real browser, against fixtures whose
-  shapes come from the brief (`{"value_list":"15.3571"}`, Overpass `out geom;`
-  ways and relations, zero-padded WMTS paths). Both unit and browser suites pass.
-- **Assumed**: that the live services behave as documented — exact WMTS layer
-  identifiers, that AHN `GetFeatureInfo` accepts a lat,lon `BBOX` under
-  `CRS=EPSG:4326`, and the CORS headers. All three are used exactly as the
-  brief specifies, but the first request against the real services has not been
-  made from here. If imagery does not appear the page says so explicitly rather
-  than showing a black map, and `Check data services` will say which of the
-  three failed — that is the first thing to press if anything looks wrong.
+| check | result |
+| --- | --- |
+| `Actueel_orthoHR` tile (8 cm winter) | HTTP 200, `image/jpeg`, 18.9 kB, CORS `*` |
+| `Actueel_ortho25` tile (25 cm summer) | HTTP 200, `image/jpeg`, 21.3 kB, CORS `*` |
+| zero-padded zoom below z10 | padded serves 27 kB — **and the unpadded path is accepted too** |
+| AHN `dtm_05m` at Apeldoorn | 18.25 m NAP, CORS `*` |
+| AHN `dsm_05m` at Apeldoorn | 28.10 m NAP (canopy, ~10 m above terrain) |
+| AHN below sea level (Zuidplaspolder) | −6.58 m NAP — negatives survive parsing |
+| Overpass `overpass-api.de` | HTML body under HTTP 200 — unusable |
+| Overpass `overpass.kumi.systems` | HTTP 500 |
+| Overpass `overpass.private.coffee` | HTTP 500 |
+| Overpass `maps.mail.ru` | 28 greens, 176 polygons, 28 hole lines, 26 pins at De Scherpenbergh, CORS `*` |
+
+Two things worth carrying forward. The brief said a plain Leaflet `{z}` template
+silently fails at low zoom; measured, the service accepts both forms, so the
+`getTileUrl` override is correct-by-documentation rather than load-bearing.
+And the Overpass fallback list is not defensive padding — three of four mirrors
+failed from a datacentre IP, one of them by returning an HTML error page under
+HTTP 200, which is exactly the case that breaks a naive `await r.json()`. From a
+domestic connection `overpass-api.de` is likely to answer first; the app
+remembers whichever one did.
+
+The remaining unverified step is the deployed site itself, because Pages has not
+been enabled yet. `.github/workflows/verify-site.yml` runs the moment Pages
+first publishes (`on: page_build`): it fetches every asset and then drives the
+live site in a real browser — real tiles, real heights, real Overpass — and
+uploads screenshots. It can also be dispatched by hand at any time.
 
 ## Structure
 

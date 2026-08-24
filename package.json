@@ -10,7 +10,9 @@
     "test:browser": "node --test tests/browser.test.mjs",
     "test:all": "npm test && npm run test:browser",
     "smoke": "node tests/smoke.mjs",
-    "coverage:refresh": "node scripts/build-coverage.mjs"
+    "coverage:refresh": "node scripts/build-coverage.mjs",
+    "test:live": "node --test tests/live.test.mjs",
+    "check:services": "node scripts/check-live-services.mjs"
   },
   "repository": {
     "type": "git",
