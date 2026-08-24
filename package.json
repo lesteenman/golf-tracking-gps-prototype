@@ -23,7 +23,7 @@
   "homepage": "https://github.com/lesteenman/golf-tracking-gps-prototype#readme",
   "devDependencies": {
     "leaflet": "^1.9.4",
-    "playwright": "^1.49.1"
+    "playwright": "^1.55.1"
   },
   "private": true
 }
