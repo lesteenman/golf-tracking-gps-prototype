@@ -160,6 +160,23 @@ HTTP 200, which is exactly the case that breaks a naive `await r.json()`. From a
 domestic connection `overpass-api.de` is likely to answer first; the app
 remembers whichever one did.
 
+The page itself was then served on a runner and driven in a real browser with
+nothing stubbed — `npm run test:live` — which is as close to the deployed
+article as it gets without Pages. All six checks pass:
+
+| check | result |
+| --- | --- |
+| boots, Leaflet loads from cdnjs | title renders, `window.APP` present |
+| real PDOK tiles | 24 loaded, 0 failed |
+| real Overpass at De Scherpenbergh | 22 greens, 139 polygons, 22 hole lines — the survey says 22 greens, 21 hole lines |
+| real AHN on hover | 17.83 m NAP under the cursor |
+| in-page service check | imagery ✓, height ✓ (18.25 m NAP), course data ✓ (261 features) |
+| relief scan on a real green | 543 m² green, **fall 0.54 m over 45 m**, 124 live AHN samples, contours every 0.25 m |
+
+That last row is the answer to the question the brief cared most about: AHN does
+resolve green undulation, and half a metre of fall across a green shows up as
+readable contours over the aerial photograph.
+
 The remaining unverified step is the deployed site itself, because Pages has not
 been enabled yet. `.github/workflows/verify-site.yml` runs the moment Pages
 first publishes (`on: page_build`): it fetches every asset and then drives the
