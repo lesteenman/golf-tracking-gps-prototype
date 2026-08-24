@@ -99,16 +99,21 @@ test('the built-in service check reports all three services up', async () => {
 });
 
 test('a green can be selected and its relief scanned against live AHN', async () => {
-  const pt = await page.evaluate(() => {
+  // Move first, settle, and only then translate the centroid to a screen
+  // point: a coordinate computed before the view change is stale by the time
+  // the click lands.
+  await page.evaluate(() => {
     const g = window.APP.parsed.areas.find(a => a.kind === 'green');
-    const c = GOLF.centroid(g.rings[0]);
-    window.APP.map.setView(c, 19);
-    const p = window.APP.map.latLngToContainerPoint(c);
-    return { x: p.x, y: p.y };
+    window.__green = GOLF.centroid(g.rings[0]);
+    window.APP.map.setView(window.__green, 19, { animate: false });
   });
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(2500);
+  const pt = await page.evaluate(() => {
+    const p = window.APP.map.latLngToContainerPoint(window.__green);
+    return { x: Math.round(p.x), y: Math.round(p.y) };
+  });
   await page.mouse.click(pt.x, pt.y);
-  await page.waitForFunction(() => window.APP.selected, null, { timeout: 15000 });
+  await page.waitForFunction(() => window.APP.selected, null, { timeout: 30000 });
 
   await page.click('#btn-scan');
   await page.waitForFunction(() => !window.APP.scanning && window.APP.count('relief') > 0,
