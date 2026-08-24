@@ -122,4 +122,9 @@ test('a green can be selected and its relief scanned against live AHN', async ()
   console.log(`    ${status}`);
   assert.match(status, /fall \d+\.\d\d m over \d+ m/);
   await page.screenshot({ path: path.join(SHOTS, 'live-03-relief.png') });
+  // A small JPEG as well: CI logs are the only channel out of some sandboxes.
+  await page.screenshot({
+    path: path.join(SHOTS, 'live-compact.jpg'), type: 'jpeg', quality: 40,
+    clip: { x: 0, y: 0, width: 900, height: 620 }
+  });
 });
