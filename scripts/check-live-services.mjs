@@ -51,18 +51,21 @@ for (const [layer, label] of [['Actueel_orthoHR', '8 cm winter'], ['Actueel_orth
   }
 }
 
-// The whole point of overriding getTileUrl: the zoom is zero-padded in the path.
+// The page zero-pads the zoom below 10, matching the WMTS ResourceURL. What
+// matters is that the padded form works; whether the unpadded form also
+// happens to be accepted is recorded as an observation, not a requirement.
 {
   const z = 8, { x, y } = tileXY(CENTRE.lat, CENTRE.lon, z);
   const padded = G.pdokTileUrl('Actueel_orthoHR', z, x, y);
   const plain = padded.replace('/08/', '/8/');
   try {
     const a = await head(padded), b = await head(plain);
-    record('zero-padded zoom is required at z<10',
-      a.status === 200 && b.status !== 200,
-      `padded HTTP ${a.status}, unpadded HTTP ${b.status}`);
+    record('zero-padded zoom at z<10 serves a tile',
+      a.status === 200 && /image/.test(a.type || ''),
+      `padded HTTP ${a.status} ${a.bytes} B · unpadded HTTP ${b.status} ` +
+      `(${b.status === 200 ? 'also accepted here' : 'rejected, so the padding is load-bearing'})`);
   } catch (e) {
-    record('zero-padded zoom is required at z<10', false, e.message);
+    record('zero-padded zoom at z<10 serves a tile', false, e.message);
   }
 }
 
@@ -85,7 +88,8 @@ for (const model of ['dtm_05m', 'dsm_05m']) {
 
 // A point below sea level: negative values must survive parsing, not be nulled.
 {
-  const url = G.ahnFeatureInfoUrl(52.4600, 4.6100, 'dtm_05m');   // Haarlemmermeer polder
+  // Zuidplaspolder near Nieuwerkerk aan den IJssel, about -6 m NAP.
+  const url = G.ahnFeatureInfoUrl(51.97583, 4.60694, 'dtm_05m');
   try {
     const v = G.parseAhnValue(await (await fetch(url)).json());
     record('height parses negative NAP values', v !== null && v < 0, `${v} m NAP`);

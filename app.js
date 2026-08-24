@@ -28,7 +28,7 @@
     'https://overpass.private.coffee/api/interpreter',
     'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
   ];
-  var OVERPASS_TIMEOUT_MS = 30000;
+  var OVERPASS_TIMEOUT_MS = 20000;
 
   var STYLE = {
     green:                { color: '#eaffea', fillColor: '#7dd87d', weight: 2,   fillOpacity: .45 },
@@ -151,9 +151,10 @@
     return list;
   }
 
-  function fetchOverpass(query) {
+  function fetchOverpass(query, onAttempt) {
     var order = endpointsInOrder(), tried = [];
     function attempt(i) {
+      if (onAttempt && i < order.length) onAttempt(i + 1, order.length, host(order[i]));
       if (i >= order.length) {
         return Promise.reject(new Error('all endpoints failed: ' + tried.join(', ')));
       }
@@ -211,7 +212,10 @@
       south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast()
     });
 
-    fetchOverpass(query).then(function (data) {
+    fetchOverpass(query, function (n, total, where) {
+      note('Querying OpenStreetMap via <b>' + escapeHtml(where) + '</b>' +
+           (n > 1 ? ' (mirror ' + n + ' of ' + total + ')' : '') + '…', 'busy');
+    }).then(function (data) {
       var parsed = G.parseGolfElements(data && data.elements);
       lastParse = parsed;
       render(parsed);
