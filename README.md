@@ -81,6 +81,10 @@ https or localhost.
   5 cm vertical accuracy, green undulation is genuinely resolvable — this is
   the thing no free app shows you. It costs roughly 150–200 `GetFeatureInfo`
   requests per green, six in flight at a time, and is cancellable.
+- **Service check.** `Legend → Check data services` probes all three
+  independently — a tile, one `GetFeatureInfo`, one small Overpass query — and
+  reports which answered. When the map looks wrong, the first question is which
+  of the three is down, and this answers it without opening devtools.
 - **Coverage panel** over the committed survey: sortable, searchable, and
   clicking a course flies the map there and loads it.
 
@@ -118,7 +122,7 @@ node scripts/build-coverage.mjs --bbox 52.0,5.9,52.3,6.2   # quick check
 
 ```sh
 npm test            # 32 unit tests, no network, no browser
-npm run test:browser # 11 tests driving Chromium with the three services stubbed
+npm run test:browser # 13 tests driving Chromium with the three services stubbed
 npm run smoke -- https://lesteenman.github.io/golf-tracking-gps-prototype/
 ```
 
@@ -140,8 +144,9 @@ mirror and `github.io`, so:
   identifiers, that AHN `GetFeatureInfo` accepts a lat,lon `BBOX` under
   `CRS=EPSG:4326`, and the CORS headers. All three are used exactly as the
   brief specifies, but the first request against the real services has not been
-  made from here. If imagery does not appear, the page says so explicitly
-  rather than showing a black map.
+  made from here. If imagery does not appear the page says so explicitly rather
+  than showing a black map, and `Check data services` will say which of the
+  three failed — that is the first thing to press if anything looks wrong.
 
 ## Structure
 

@@ -254,6 +254,33 @@ test('imagery toggle switches to the 25 cm summer layer', async () => {
   await page.close();
 });
 
+test('the diagnostics panel reports each service separately', async () => {
+  const { page } = await open(browser, ctx.port);
+  await loaded(page);
+  await page.click('#btn-legend');
+  await page.click('#btn-diag');
+  await page.waitForFunction(() => document.querySelectorAll('#diag-list .ok, #diag-list .bad').length === 3,
+    null, { timeout: 20000 });
+  const marks = await page.locator('#diag-list li').allTextContents();
+  assert.equal(marks.filter(t => t.startsWith('✓')).length, 3, JSON.stringify(marks));
+  assert.ok(marks.some(t => /m NAP/.test(t)), 'height probe reports a value: ' + JSON.stringify(marks));
+  await page.screenshot({ path: path.join(SHOTS, '06-diagnostics.png') });
+  await page.close();
+});
+
+test('diagnostics single out the service that is actually down', async () => {
+  const { page } = await open(browser, ctx.port, { ahnFails: true });
+  await loaded(page);
+  await page.click('#btn-legend');
+  await page.click('#btn-diag');
+  await page.waitForFunction(() => document.querySelectorAll('#diag-list .ok, #diag-list .bad').length === 3,
+    null, { timeout: 20000 });
+  const marks = await page.locator('#diag-list li').allTextContents();
+  assert.equal(marks.filter(t => t.startsWith('✓')).length, 2, JSON.stringify(marks));
+  assert.ok(marks.some(t => t.startsWith('✗') && t.includes('height')), JSON.stringify(marks));
+  await page.close();
+});
+
 test('a total Overpass outage names the endpoints it tried', async () => {
   const { page, seen } = await open(browser, ctx.port, { overpassFails: true });
   await page.waitForFunction(() => document.querySelector('#note').classList.contains('err'),

@@ -581,6 +581,68 @@
     this.classList.toggle('on', !el.hidden);
   });
 
+  /* ================= service diagnostics ================= */
+
+  // Three services, three separate ways to fail. When the map looks wrong the
+  // first question is always which one is down, so answer it directly.
+  function probeImagery() {
+    return new Promise(function (resolve) {
+      var c = map.getCenter(), z = 14;
+      var p = map.project(c, z).divideBy(256).floor();
+      var url = G.pdokTileUrl(showingWinter ? 'Actueel_orthoHR' : 'Actueel_ortho25', z, p.x, p.y);
+      var img = new Image();
+      var done = function (ok, detail) { resolve({ ok: ok, detail: detail, url: url }); };
+      img.onload = function () { done(true, img.naturalWidth + '×' + img.naturalHeight + ' px tile'); };
+      img.onerror = function () { done(false, 'tile request failed'); };
+      setTimeout(function () { done(false, 'timed out'); }, 15000);
+      img.src = url;
+    });
+  }
+
+  function probeHeight() {
+    var c = map.getCenter();
+    var url = G.ahnFeatureInfoUrl(c.lat, c.lng, model);
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (j) {
+      var v = G.parseAhnValue(j);
+      return { ok: v !== null, detail: v === null ? 'responded, but no height here' : v.toFixed(2) + ' m NAP', url: url };
+    }).catch(function (e) {
+      return { ok: false, detail: e.message, url: url };
+    });
+  }
+
+  function probeOverpass() {
+    var c = map.getCenter(), d = 0.01;
+    var q = G.overpassQuery({ south: c.lat - d, west: c.lng - d, north: c.lat + d, east: c.lng + d });
+    return fetchOverpass(q).then(function (j) {
+      return { ok: true, detail: (j.elements || []).length + ' features in view', url: OVERPASS[preferred] };
+    }).catch(function (e) {
+      return { ok: false, detail: e.message, url: 'all ' + OVERPASS.length + ' endpoints' };
+    });
+  }
+
+  $('btn-diag').addEventListener('click', function () {
+    var list = $('diag-list');
+    var rows = [
+      { name: 'imagery ', probe: probeImagery },
+      { name: 'height  ', probe: probeHeight },
+      { name: 'course  ', probe: probeOverpass }
+    ];
+    list.innerHTML = '';
+    rows.forEach(function (row, i) {
+      var li = document.createElement('li');
+      li.innerHTML = '<span class="pending">…</span><b>' + row.name.trim() + '</b><em>checking</em>';
+      list.appendChild(li);
+      row.probe().then(function (res) {
+        li.innerHTML = '<span class="' + (res.ok ? 'ok' : 'bad') + '">' + (res.ok ? '✓' : '✗') + '</span>' +
+          '<b>' + row.name.trim() + '</b><em>' + escapeHtml(res.detail) + '</em>';
+        li.title = res.url;
+      });
+    });
+  });
+
   /* ================= coverage panel ================= */
 
   var coverage = null, covSort = { key: 'green', dir: 'desc' };
