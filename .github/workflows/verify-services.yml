@@ -1,11 +1,12 @@
-# Checks the three live open-data services from a runner, using the same URL
-# builders the page uses. Dispatch-only: it depends on third-party services, so
-# it should never be able to turn the repository's CI red on its own.
+# Verifies the prototype against the real PDOK, AHN and Overpass services.
+# Dispatch-only: it depends on third-party services, so it must never be able
+# to turn the repository's CI red on its own.
 name: verify live services
 on:
   workflow_dispatch:
 
 jobs:
+  # 1. Do the three services answer the requests the page makes?
   services:
     runs-on: ubuntu-latest
     steps:
@@ -14,3 +15,34 @@ jobs:
         with:
           node-version: '22'
       - run: node scripts/check-live-services.mjs
+
+  # 2. Does the page itself work against them? Serve the repository on the
+  #    runner and drive it in a real browser with nothing stubbed. This is the
+  #    same check verify-site.yml runs against Pages, minus the hosting.
+  page:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: serve the site locally
+        run: |
+          python3 -m http.server 8000 --bind 127.0.0.1 &
+          for i in $(seq 1 20); do
+            curl -fsS http://127.0.0.1:8000/ >/dev/null && break
+            sleep 0.5
+          done
+      - name: end to end against live services
+        env:
+          SITE_URL: http://127.0.0.1:8000/
+        run: node --test tests/live.test.mjs
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-screenshots
+          path: test-results/
+          if-no-files-found: ignore
