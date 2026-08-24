@@ -274,9 +274,9 @@
       line.on('click', function (e) { handleClick(e.latlng); });
       line.bindPopup(holePopup(h));
 
-      var label = h.ref ? ('#' + h.ref) : 'hole';
+      var label = h.ref ? ('#' + h.ref) : (h.derived ? 'tee→green' : 'hole');
       if (h.par) label += ' · par ' + h.par;
-      if (h.derived) label += ' *';
+      if (h.derived && h.ref) label += ' *';
       L.marker(midpoint(h.points), {
         pane: 'labels', interactive: false,
         icon: L.divIcon({ className: 'hole-label', html: escapeHtml(label), iconSize: null })

@@ -109,6 +109,30 @@ test('no derived route where a mapped hole line already exists', () => {
 
 /* ---------- geometry ---------- */
 
+test('two unreffed greens near one tee do not fan out of it', () => {
+  const at = (lat, lon) => [[lat, lon], [lat, lon + 0.0002], [lat + 0.0002, lon + 0.0002]];
+  const areas = [
+    { kind: 'tee', ref: null, rings: [at(52.000, 6.000)] },
+    { kind: 'tee', ref: null, rings: [at(52.003, 6.003)] },
+    { kind: 'green', ref: null, rings: [at(52.001, 6.001)] },
+    { kind: 'green', ref: null, rings: [at(52.0012, 6.0012)] }
+  ];
+  const routes = G.deriveHoleRoutes(areas, []);
+  assert.equal(routes.length, 2, 'one route per green');
+  const teeEnds = routes.map(r => r.points[0].join(','));
+  assert.equal(new Set(teeEnds).size, 2, 'each route starts from a different tee');
+});
+
+test('derived routes stop when there are more greens than tees', () => {
+  const at = (lat, lon) => [[lat, lon], [lat, lon + 0.0002], [lat + 0.0002, lon + 0.0002]];
+  const areas = [
+    { kind: 'tee', ref: null, rings: [at(52.000, 6.000)] },
+    { kind: 'green', ref: null, rings: [at(52.001, 6.001)] },
+    { kind: 'green', ref: null, rings: [at(52.002, 6.002)] }
+  ];
+  assert.equal(G.deriveHoleRoutes(areas, []).length, 1);
+});
+
 test('haversine matches a known one-degree-of-latitude distance', () => {
   const d = G.metres([52, 6], [53, 6]);
   assert.ok(Math.abs(d - 111195) < 200, `got ${d}`);

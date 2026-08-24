@@ -205,31 +205,47 @@ var GOLF = (function () {
     areas.forEach(function (a) {
       var c = centroid(a.rings[0]);
       if (!c) return;
-      if (a.kind === 'tee') tees.push({ ref: a.ref, c: c });
-      if (a.kind === 'green') greens.push({ ref: a.ref, c: c });
+      if (a.kind === 'tee') tees.push({ ref: a.ref, c: c, used: false });
+      if (a.kind === 'green') greens.push({ ref: a.ref, c: c, done: false });
     });
 
     var routes = [];
+    function connect(g, t) {
+      g.done = true; t.used = true;
+      routes.push({ ref: g.ref || t.ref || null, par: null, points: [t.c, g.c], derived: true });
+    }
+
+    // Pass 1: greens and tees that agree on a ref, where no mapped hole covers it.
     greens.forEach(function (g) {
-      if (g.ref && have[g.ref]) return;
+      if (!g.ref || have[g.ref]) { if (g.ref && have[g.ref]) g.done = true; return; }
       var best = null, bestD = Infinity;
-      for (var i = 0; i < tees.length; i++) {
-        var t = tees[i];
-        if (g.ref && t.ref && t.ref !== g.ref) continue;      // refs disagree: not this hole
-        if (g.ref && !t.ref) continue;                        // prefer an explicit match
+      tees.forEach(function (t) {
+        if (t.used || t.ref !== g.ref) return;
         var d = metres(t.c, g.c);
         if (d < bestD) { bestD = d; best = t; }
-      }
-      if (!best && !g.ref) {                                   // unreffed green: nearest tee
-        for (var k = 0; k < tees.length; k++) {
-          var d2 = metres(tees[k].c, g.c);
-          if (d2 < bestD) { bestD = d2; best = tees[k]; }
-        }
-      }
-      if (best && bestD <= maxDerivedM) {
-        routes.push({ ref: g.ref || best.ref || null, par: null, points: [best.c, g.c], derived: true });
-      }
+      });
+      if (best && bestD <= maxDerivedM) connect(g, best);
     });
+
+    // Pass 2: everything else, nearest first and one tee per green. Without the
+    // one-to-one rule several unreffed greens all pick the same tee and the map
+    // grows a fan of lines out of it, which looks like data that is not there.
+    var pairs = [];
+    greens.forEach(function (g, gi) {
+      if (g.done) return;
+      tees.forEach(function (t, ti) {
+        if (t.used) return;
+        var d = metres(t.c, g.c);
+        if (d <= maxDerivedM) pairs.push({ d: d, gi: gi, ti: ti });
+      });
+    });
+    pairs.sort(function (a, b) { return a.d - b.d; });
+    pairs.forEach(function (p) {
+      var g = greens[p.gi], t = tees[p.ti];
+      if (g.done || t.used) return;
+      connect(g, t);
+    });
+
     return routes;
   }
 
