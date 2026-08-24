@@ -1,9 +1,12 @@
+# Only needed if you set Settings -> Pages -> Source to "GitHub Actions".
+# With Source set to "Deploy from a branch" (the simpler option, and what the
+# README describes) GitHub builds the site itself and this workflow is unused.
+#
+# It is dispatch-only because the automatic GITHUB_TOKEN cannot create a Pages
+# site: configure-pages fails with "Resource not accessible by integration"
+# until a repository admin has enabled Pages once.
 name: deploy pages
 on:
-  push:
-    branches:
-      - main
-      - claude/prototype-build-mk8zm2
   workflow_dispatch:
 
 permissions:
@@ -23,11 +26,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      # enablement:true creates the Pages site if the repository does not have
-      # one yet, so no manual visit to Settings -> Pages is needed.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .

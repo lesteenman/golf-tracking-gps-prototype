@@ -13,8 +13,12 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--ink);color:var(-
   font:15px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   -webkit-text-size-adjust:100%}
 #map{position:absolute;inset:0}
+/* Panels below set an explicit display, which would otherwise beat [hidden]. */
+[hidden]{display:none!important}
 .leaflet-container{background:#0b0f0c;font:inherit}
 .leaflet-control-attribution{display:none}
+/* Keep the zoom and scale controls clear of the readout along the bottom. */
+.leaflet-bottom{bottom:calc(150px + env(safe-area-inset-bottom))}
 
 /* ---------- top bar ---------- */
 #bar{position:absolute;top:0;left:0;right:0;z-index:900;display:flex;gap:6px;flex-wrap:wrap;

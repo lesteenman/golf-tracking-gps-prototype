@@ -60,7 +60,10 @@
   var showingWinter = true;
 
   var start = readHash() || DEFAULT_VIEW;
-  var map = L.map('map', { zoomControl: false, layers: [imagery.winter], preferCanvas: true })
+  // SVG rendering, deliberately: with a canvas renderer the topmost pane's
+  // canvas swallows clicks meant for polygons in the panes below it, so greens
+  // stop being selectable once hole routes are drawn over them.
+  var map = L.map('map', { zoomControl: false, layers: [imagery.winter] })
     .setView([start.lat, start.lon], start.zoom);
   L.control.zoom({ position: 'bottomleft' }).addTo(map);
   L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
@@ -70,7 +73,9 @@
   map.createPane('routes'); map.getPane('routes').style.zIndex = 430;
   map.createPane('labels'); map.getPane('labels').style.zIndex = 440;
   map.getPane('labels').style.pointerEvents = 'none';
+  map.getPane('relief').style.pointerEvents = 'none';   // contours are decoration, not targets
 
+  var greenPolys = [];
   var courseLayer = L.layerGroup().addTo(map);
   var routeLayer = L.layerGroup().addTo(map);
   var labelLayer = L.layerGroup().addTo(map);
@@ -217,7 +222,7 @@
              'or the mapped part is outside the current view.', 'warn');
       } else {
         note('<b>' + parsed.greenCount + '</b> greens, <b>' + parsed.areas.length + '</b> polygons, ' +
-             '<b>' + parsed.holes.length + '</b> mapped hole lines' +
+             '<b>' + parsed.holes.length + '</b> mapped hole line' + (parsed.holes.length === 1 ? '' : 's') +
              (derived ? ' + <b>' + derived + '</b> derived tee&rarr;green' : '') +
              '. Tap a green to select it, then scan its relief.');
       }
@@ -232,6 +237,7 @@
 
   function render(parsed) {
     courseLayer.clearLayers(); routeLayer.clearLayers(); labelLayer.clearLayers();
+    greenPolys = [];
     clearRelief();
     selectGreen(null);
 
@@ -245,9 +251,8 @@
       var poly = L.polygon(latlngs, Object.assign({ pane: 'areas' }, style));
       poly.feature_ = a;
       poly.addTo(courseLayer);
-      poly.on('click', function (e) {
-        if (a.kind === 'green') { L.DomEvent.stop(e); selectGreen(poly); }
-      });
+      if (a.kind === 'green') greenPolys.push(poly);
+      poly.on('click', function (e) { L.DomEvent.stop(e); handleClick(e.latlng); });
       poly.bindPopup(function () { return areaPopup(a); });
     });
 
@@ -262,6 +267,7 @@
         opacity: .95,
         dashArray: h.derived ? '6 5' : null
       }).addTo(routeLayer);
+      line.on('click', function (e) { handleClick(e.latlng); });
       line.bindPopup(holePopup(h));
 
       var label = h.ref ? ('#' + h.ref) : 'hole';
@@ -273,12 +279,13 @@
       }).addTo(labelLayer);
     });
 
+    // Pins are drawn as decoration only. Interactive markers would sit exactly
+    // over the middle of a green and swallow the tap that selects it.
     parsed.pins.forEach(function (p) {
       L.circleMarker([p.lat, p.lon], {
-        pane: 'labels', radius: 4, color: '#0b0f0c', weight: 1.5,
+        pane: 'labels', interactive: false, radius: 4, color: '#0b0f0c', weight: 1.5,
         fillColor: '#ffffff', fillOpacity: 1
-      }).addTo(labelLayer).bindPopup('<h3>Pin' + (p.ref ? ' ' + escapeHtml(p.ref) : '') + '</h3>' +
-        '<dl><dt>OSM</dt><dd>' + escapeHtml(p.id) + '</dd></dl>');
+      }).addTo(labelLayer);
     });
 
     $('r-greens').textContent = parsed.greenCount;
@@ -390,22 +397,39 @@
     map.on('mouseout', function () { $('probe').hidden = true; clearTimeout(hoverTimer); });
   }
 
-  map.on('click', function (e) {
+  // Taps on a course polygon do not reach the map's own click handler on a
+  // touch device, so the probe is called from here and from every feature.
+  function probeAt(latlng) {
     if (!probeMarker) {
-      probeMarker = L.circleMarker(e.latlng, {
+      probeMarker = L.circleMarker(latlng, {
         pane: 'labels', radius: 7, color: '#fff', weight: 2, fillColor: '#ff5c3a', fillOpacity: 1
       }).addTo(map);
     }
-    probeMarker.setLatLng(e.latlng);
+    probeMarker.setLatLng(latlng);
     $('r-height').textContent = '…';
-    queryHeight(e.latlng.lat, e.latlng.lng).then(function (v) {
+    return queryHeight(latlng.lat, latlng.lng).then(function (v) {
       if (v === undefined) return;
       showHeight(v);
       probeMarker.bindPopup('<h3>' + (v === null ? 'No height here' : v.toFixed(2) + ' m NAP') + '</h3><dl>' +
         '<dt>model</dt><dd>' + (model === 'dtm_05m' ? 'AHN DTM 0.5 m' : 'AHN DSM 0.5 m') + '</dd>' +
-        '<dt>lat, lon</dt><dd>' + e.latlng.lat.toFixed(5) + ', ' + e.latlng.lng.toFixed(5) + '</dd></dl>').openPopup();
+        '<dt>lat, lon</dt><dd>' + latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5) + '</dd></dl>');
     });
-  });
+  }
+
+  // Whichever layer happens to intercept the tap — a fairway, a hole line that
+  // ends on the green, the map itself — a click means the same two things:
+  // read the height here, and select the green this point falls inside.
+  function handleClick(latlng) {
+    probeAt(latlng);
+    var hit = null;
+    for (var i = 0; i < greenPolys.length; i++) {
+      var a = greenPolys[i].feature_;
+      if (G.pointInRing([latlng.lat, latlng.lng], a.rings[0])) { hit = greenPolys[i]; break; }
+    }
+    if (hit) selectGreen(hit);
+  }
+
+  map.on('click', function (e) { handleClick(e.latlng); });
 
   /* ================= green relief scan ================= */
 
@@ -475,26 +499,33 @@
     var levels = G.contourLevels(min, max, 0.25);
     var segs = G.isolines(values, grid.n, levels);
 
+    // One multi-polyline per level rather than one path per segment.
+    var byLevel = {};
     segs.forEach(function (s) {
-      var t = (max - min) < 1e-6 ? .5 : (s.level - min) / (max - min);
-      L.polyline([
+      (byLevel[s.level] = byLevel[s.level] || []).push([
         G.gridToLatLng(s.a, grid.bounds, grid.n),
         G.gridToLatLng(s.b, grid.bounds, grid.n)
-      ], {
+      ]);
+    });
+    Object.keys(byLevel).forEach(function (lv) {
+      var t = (max - min) < 1e-6 ? .5 : (Number(lv) - min) / (max - min);
+      L.polyline(byLevel[lv], {
         pane: 'relief', color: rampColour(t), weight: 2, opacity: .95, interactive: false
       }).addTo(reliefLayer);
     });
 
-    // Label every other contour once, at its leftmost segment.
-    var seen = {};
-    segs.forEach(function (s) {
-      var key = s.level.toFixed(2);
-      if (seen[key]) return;
-      seen[key] = true;
-      if (levels.indexOf(s.level) % 2 !== 0) return;
-      L.marker(G.gridToLatLng(s.a, grid.bounds, grid.n), {
+    // Label every other level once, at its westernmost point, so the labels
+    // spread around the green instead of stacking where each ring starts.
+    Object.keys(byLevel).forEach(function (lv, i) {
+      if (i % 2 !== 0) return;
+      var west = null;
+      byLevel[lv].forEach(function (seg) {
+        seg.forEach(function (ll) { if (!west || ll[1] < west[1]) west = ll; });
+      });
+      if (!west) return;
+      L.marker(west, {
         pane: 'labels', interactive: false,
-        icon: L.divIcon({ className: 'contour-label', html: s.level.toFixed(2), iconSize: null })
+        icon: L.divIcon({ className: 'contour-label', html: Number(lv).toFixed(2), iconSize: null })
       }).addTo(reliefLayer);
     });
 
@@ -664,5 +695,13 @@
   // Load the default view straight away so the page proves itself without a tap.
   map.whenReady(function () { setTimeout(loadCourse, 600); });
 
-  window.APP = { map: map, loadCourse: loadCourse, get parsed() { return lastParse; } };
+  // Exposed for the browser test in tests/browser.test.mjs.
+  window.APP = {
+    map: map, loadCourse: loadCourse,
+    layers: { course: courseLayer, routes: routeLayer, labels: labelLayer, relief: reliefLayer },
+    count: function (name) { return this.layers[name].getLayers().length; },
+    get parsed() { return lastParse; },
+    get selected() { return selected && selected.feature_; },
+    get scanning() { return scan.running; }
+  };
 })();
