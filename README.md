@@ -22,18 +22,15 @@ it. It exists to answer three questions:
 No bundler, no framework, no build step: `index.html`, `styles.css`, `app.js`
 and `lib.js`, with Leaflet from cdnjs. Open the file directly and hack on it.
 
-## Deploying it (one manual step, then it is live)
+## Where it is
 
-The repository is public and everything is committed. GitHub Pages has to be
-switched on once by hand — creating a Pages site needs repository-admin rights
-that no automation token (including a workflow's `GITHUB_TOKEN`) can hold:
+**https://lesteenman.github.io/golf-tracking-gps-prototype/** — live, served
+from branch `claude/prototype-build-mk8zm2`, root folder.
 
-> **Settings → Pages → Build and deployment → Source: _Deploy from a branch_ →
-> Branch: `claude/prototype-build-mk8zm2`, folder `/ (root)` → Save**
-
-A minute later the site is at
-`https://lesteenman.github.io/golf-tracking-gps-prototype/`. Verify it is really
-serving — a green Actions run is not proof:
+Every push republishes it, and the republish triggers `verify-site.yml`
+(`on: page_build`), which fetches every asset and then drives the deployed site
+in a real browser against live PDOK, AHN and Overpass. To check by hand — a
+green Actions run is not proof the site is serving:
 
 ```sh
 node tests/smoke.mjs https://lesteenman.github.io/golf-tracking-gps-prototype/
@@ -177,11 +174,12 @@ That last row is the answer to the question the brief cared most about: AHN does
 resolve green undulation, and half a metre of fall across a green shows up as
 readable contours over the aerial photograph.
 
-The remaining unverified step is the deployed site itself, because Pages has not
-been enabled yet. `.github/workflows/verify-site.yml` runs the moment Pages
-first publishes (`on: page_build`): it fetches every asset and then drives the
-live site in a real browser — real tiles, real heights, real Overpass — and
-uploads screenshots. It can also be dispatched by hand at any time.
+The deployed site was then verified the same way, automatically, on its first
+publish: smoke (index, `lib.js`, `app.js`, `styles.css` and the coverage JSON
+all 200) followed by the same six browser checks against
+`https://lesteenman.github.io/golf-tracking-gps-prototype/` — 24 tiles, 22
+greens, 17.83 m NAP on hover, and 0.54 m of fall across the scanned green. Six
+of six pass. Nothing about the prototype is unverified any more.
 
 ## Structure
 
