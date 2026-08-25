@@ -30,6 +30,17 @@ jobs:
         run: node tests/smoke.mjs "$SITE_URL"
       - name: end to end — live services in a real browser
         run: node --test tests/live.test.mjs
+      - name: emit a compact screenshot into the log
+        if: always()
+        run: |
+          f=test-results/live-compact.jpg
+          if [ -f "$f" ]; then
+            echo "IMG_BYTES $(stat -c%s "$f")"
+            base64 -w 120 "$f" | sed 's/^/IMG /'
+            echo "IMG_END"
+          else
+            echo "no compact screenshot produced"
+          fi
       - if: always()
         uses: actions/upload-artifact@v4
         with:
